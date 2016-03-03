@@ -4,10 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/docker/libkv"
+	"github.com/docker/libkv/store"
+	"github.com/docker/libkv/store/etcd"
 	"github.com/docker/machine/libmachine/host"
 	"github.com/docker/machine/libmachine/mcnerror"
 )
@@ -16,13 +21,38 @@ type Filestore struct {
 	Path             string
 	CaCertPath       string
 	CaPrivateKeyPath string
+	store            store.Store
+}
+
+func init() {
+	etcd.Register()
+	//consul.Register()
+	//zookeeper.Register()
+	//boltdb.Register()
 }
 
 func NewFilestore(path, caCertPath, caPrivateKeyPath string) *Filestore {
+	kvurl, err := url.Parse(path)
+	var kvStore store.Store
+	if err != nil {
+		switch kvurl.Scheme {
+		case "etcd":
+			kvStore, err = libkv.NewStore(
+				store.ETCD,
+				[]string{kvurl.Host},
+				&store.Config{
+					ConnectionTimeout: 10 * time.Second,
+				},
+			)
+			// TODO other KV store types
+		}
+	}
+
 	return &Filestore{
 		Path:             path,
 		CaCertPath:       caCertPath,
 		CaPrivateKeyPath: caPrivateKeyPath,
+		store:            kvStore,
 	}
 }
 
