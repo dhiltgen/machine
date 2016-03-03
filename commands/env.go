@@ -12,6 +12,8 @@ import (
 	"github.com/docker/machine/libmachine"
 	"github.com/docker/machine/libmachine/check"
 	"github.com/docker/machine/libmachine/log"
+	"github.com/docker/machine/libmachine/mcnutils"
+	"github.com/docker/machine/libmachine/persist"
 	"github.com/docker/machine/libmachine/shell"
 )
 
@@ -91,8 +93,35 @@ func shellCfgSet(c CommandLine, api libmachine.API) (*ShellConfig, error) {
 		return nil, err
 	}
 
+	// copy certs from libkv to default path... a bit hacky.
+	dockerCertPath := filepath.Join(mcndirs.GetMachineDir(), host.Name)
+	if strings.HasPrefix(dockerCertPath, "etcd:/") {
+		// XXX THIS IS TERRIBLE >: (
+		kvStore := persist.NewKvstore(mcndirs.GetBaseDir(), dockerCertPath)
+		exportDockerCertPath := filepath.Join(mcnutils.GetHomeDir(), ".docker", "machine", "machines", host.Name)
+
+		machineFiles, err := kvStore.ListMachineFiles(host)
+		if err != nil {
+			return nil, err
+		}
+
+		os.MkdirAll(exportDockerCertPath, 0700)
+		for _, machineFile := range machineFiles {
+			log.Debugf("AK: copying %s -> %s", machineFile, exportDockerCertPath)
+
+			fullKvPath := mcnutils.Join(mcndirs.GetMachineDir(), machineFile)
+			log.Debugf("AK: path is %s", fullKvPath)
+			err = mcnutils.CopyFile(fullKvPath, filepath.Join(exportDockerCertPath, filepath.Base(machineFile)))
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		dockerCertPath = exportDockerCertPath
+	}
+
 	shellCfg := &ShellConfig{
-		DockerCertPath:  filepath.Join(mcndirs.GetMachineDir(), host.Name),
+		DockerCertPath:  dockerCertPath,
 		DockerHost:      dockerHost,
 		DockerTLSVerify: "1",
 		UsageHint:       defaultUsageHinter.GenerateUsageHint(userShell, os.Args),

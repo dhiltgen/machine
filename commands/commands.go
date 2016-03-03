@@ -142,6 +142,13 @@ func runAction(actionName string, c CommandLine, api libmachine.API) error {
 
 func runCommand(command func(commandLine CommandLine, api libmachine.API) error) func(context *cli.Context) {
 	return func(context *cli.Context) {
+		storagePath := context.GlobalString("storage-path")
+		if storagePath != "" {
+			log.Debugf("Using user defined storage-path: %s", storagePath)
+			mcndirs.BaseDir = storagePath
+		} else {
+			log.Debugf("Using default storage-path")
+		}
 		api := libmachine.NewClient(mcndirs.GetBaseDir(), mcndirs.GetMachineCertDir())
 		defer api.Close()
 
@@ -149,14 +156,12 @@ func runCommand(command func(commandLine CommandLine, api libmachine.API) error)
 			api.SSHClientType = ssh.Native
 		}
 		api.GithubAPIToken = context.GlobalString("github-api-token")
-		api.Filestore.Path = context.GlobalString("storage-path")
 
 		// TODO (nathanleclaire): These should ultimately be accessed
 		// through the libmachine client by the rest of the code and
 		// not through their respective modules.  For now, however,
 		// they are also being set the way that they originally were
 		// set to preserve backwards compatibility.
-		mcndirs.BaseDir = api.Filestore.Path
 		mcnutils.GithubAPIToken = api.GithubAPIToken
 		ssh.SetDefaultClient(api.SSHClientType)
 

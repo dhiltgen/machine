@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"strconv"
@@ -810,7 +809,7 @@ func (d *Driver) createKeyPair() error {
 		keyPath = d.SSHPrivateKeyPath
 	}
 
-	publicKey, err := ioutil.ReadFile(keyPath + ".pub")
+	publicKey, err := mcnutils.ReadFile(keyPath + ".pub")
 	if err != nil {
 		return err
 	}

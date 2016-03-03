@@ -10,10 +10,18 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
-	"runtime"
+	"path/filepath"
+	"strings"
+	"time"
 
 	gossh "golang.org/x/crypto/ssh"
+
+	"github.com/docker/libkv"
+	"github.com/docker/libkv/store"
+	"github.com/docker/libkv/store/etcd"
+	"github.com/docker/machine/libmachine/log"
 )
 
 var (
@@ -21,6 +29,9 @@ var (
 	ErrValidation        = errors.New("Unable to validate key")
 	ErrPublicKey         = errors.New("Unable to convert public key")
 	ErrUnableToWriteFile = errors.New("Unable to write file")
+
+	Store  store.Store
+	Prefix = ""
 )
 
 type KeyPair struct {
@@ -55,6 +66,9 @@ func NewKeyPair() (keyPair *KeyPair, err error) {
 
 // WriteToFile writes keypair to files
 func (kp *KeyPair) WriteToFile(privateKeyPath string, publicKeyPath string) error {
+	if err := setStore(privateKeyPath); err != nil {
+		return err
+	}
 	files := []struct {
 		File  string
 		Type  string
@@ -71,25 +85,23 @@ func (kp *KeyPair) WriteToFile(privateKeyPath string, publicKeyPath string) erro
 	}
 
 	for _, v := range files {
-		f, err := os.Create(v.File)
+		err := writeFile(v.File, v.Value, 0, 0600)
 		if err != nil {
-			return ErrUnableToWriteFile
-		}
-
-		if _, err := f.Write(v.Value); err != nil {
-			return ErrUnableToWriteFile
-		}
-
-		// windows does not support chmod
-		switch runtime.GOOS {
-		case "darwin", "linux":
-			if err := f.Chmod(0600); err != nil {
-				return err
-			}
+			return err
 		}
 	}
 
 	return nil
+}
+
+func writeFile(filename string, data []byte, flag int, mode os.FileMode) error {
+	path := strings.TrimPrefix(filename, Prefix)
+
+	key := filepath.Join("/", MachinePrefix, path)
+	log.Debugf("XXX KV SSH Write -> %s", key)
+	err := Store.Put(key, data, nil)
+	log.Debugf("XXX err: %s", err)
+	return err
 }
 
 // Fingerprint calculates the fingerprint of the public key
@@ -102,13 +114,69 @@ func (kp *KeyPair) Fingerprint() string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
+// HACK!!!
+const MachinePrefix = "machine/v0"
+
+func init() {
+	etcd.Register()
+	//consul.Register()
+	//zookeeper.Register()
+	//boltdb.Register()
+}
+func setStore(path string) error {
+	if Store != nil {
+		return nil
+	}
+	kvurl, err := url.Parse(path) // XXX Prefix is going to be wrong!
+	if err != nil {
+		return fmt.Errorf("Malformed store path: %s %s", path, err)
+	}
+	switch kvurl.Scheme {
+	case "etcd":
+		// TODO - figure out how to get TLS support in here...
+		kvStore, err := libkv.NewStore(
+			store.ETCD,
+			[]string{kvurl.Host},
+			&store.Config{
+				ConnectionTimeout: 10 * time.Second,
+			},
+		)
+		if err != nil {
+			return err
+		}
+		Store = kvStore
+		// TODO other KV store types
+	default:
+		return fmt.Errorf("Unsupporetd KV store type: %s", kvurl.Scheme)
+	}
+	Prefix = fmt.Sprintf("%s://%s", kvurl.Scheme, kvurl.Host)
+	// TODO - doesn't handle local paths!!!
+	return nil
+}
+func Exists(filename string) bool {
+	path := strings.TrimPrefix(filename, Prefix)
+
+	key := filepath.Join("/", MachinePrefix, path)
+	log.Debugf("XXX KV Exists -> %s", key)
+	exists, err := Store.Exists(key)
+	if err != nil {
+		// TODO log a better message on other errors
+		log.Errorf("KV lookup failure on %s: %s", filename, err)
+		return false
+	}
+	log.Debugf("XXX Exists: %v", exists)
+	return exists
+}
+
 // GenerateSSHKey generates SSH keypair based on path of the private key
 // The public key would be generated to the same path with ".pub" added
 func GenerateSSHKey(path string) error {
-	if _, err := os.Stat(path); err != nil {
-		if !os.IsNotExist(err) {
-			return fmt.Errorf("Desired directory for SSH keys does not exist: %s", err)
-		}
+	log.Debugf("XXX GenerateSSHKey -> %s", path)
+	if err := setStore(path); err != nil {
+		return err
+	}
+
+	if !Exists(path) {
 
 		kp, err := NewKeyPair()
 		if err != nil {

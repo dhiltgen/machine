@@ -2,7 +2,7 @@ package libmachine
 
 import (
 	"fmt"
-	"path/filepath"
+	"net/url"
 
 	"io"
 
@@ -31,7 +31,6 @@ type API interface {
 	NewHost(driverName string, rawDriver []byte) (*host.Host, error)
 	Create(h *host.Host) error
 	persist.Store
-	GetMachinesDir() string
 }
 
 type Client struct {
@@ -39,16 +38,39 @@ type Client struct {
 	IsDebug        bool
 	SSHClientType  ssh.ClientType
 	GithubAPIToken string
-	*persist.Filestore
+	//*persist.Filestore
+	persist.Store
 	clientDriverFactory rpcdriver.RPCClientDriverFactory
 }
 
 func NewClient(storePath, certsDir string) *Client {
+	// Determine which type of store to generate
+	log.Debugf("In NewClient(%s, %s)", storePath, certsDir)
+	var store persist.Store
+	storeURL, err := url.Parse(storePath)
+	if err == nil {
+		log.Debugf("Parsed URL Scheme: %s", storeURL.Scheme)
+		log.Debugf("Parsed URL Host: %s", storeURL.Host)
+		log.Debugf("Parsed URL Path: %s", storeURL.Path)
+		// The scheme will be blank on unix paths, might be a drive letter (single char)
+		// or a multi-character scheme that libkv will hopefully handle
+		if len(storeURL.Scheme) > 1 {
+			log.Debugf("Generated new KV store")
+			store = persist.NewKvstore(storePath, certsDir)
+		}
+	} else {
+		log.Debugf("Failed to parse: %s", err)
+	}
+	if store == nil {
+		log.Debugf("Generated new file store")
+		store = persist.NewFilestore(storePath, certsDir, certsDir)
+	}
+
 	return &Client{
 		certsDir:            certsDir,
 		IsDebug:             false,
 		SSHClientType:       ssh.External,
-		Filestore:           persist.NewFilestore(storePath, certsDir, certsDir),
+		Store:               store,
 		clientDriverFactory: rpcdriver.NewRPCClientDriverFactory(),
 	}
 }
@@ -67,12 +89,12 @@ func (api *Client) NewHost(driverName string, rawDriver []byte) (*host.Host, err
 		HostOptions: &host.Options{
 			AuthOptions: &auth.Options{
 				CertDir:          api.certsDir,
-				CaCertPath:       filepath.Join(api.certsDir, "ca.pem"),
-				CaPrivateKeyPath: filepath.Join(api.certsDir, "ca-key.pem"),
-				ClientCertPath:   filepath.Join(api.certsDir, "cert.pem"),
-				ClientKeyPath:    filepath.Join(api.certsDir, "key.pem"),
-				ServerCertPath:   filepath.Join(api.GetMachinesDir(), "server.pem"),
-				ServerKeyPath:    filepath.Join(api.GetMachinesDir(), "server-key.pem"),
+				CaCertPath:       mcnutils.Join(api.certsDir, "ca.pem"),
+				CaPrivateKeyPath: mcnutils.Join(api.certsDir, "ca-key.pem"),
+				ClientCertPath:   mcnutils.Join(api.certsDir, "cert.pem"),
+				ClientKeyPath:    mcnutils.Join(api.certsDir, "key.pem"),
+				ServerCertPath:   mcnutils.Join(api.GetMachinesDir(), "server.pem"),
+				ServerKeyPath:    mcnutils.Join(api.GetMachinesDir(), "server-key.pem"),
 			},
 			EngineOptions: &engine.Options{
 				InstallURL:    drivers.DefaultEngineInstallURL,
@@ -89,7 +111,7 @@ func (api *Client) NewHost(driverName string, rawDriver []byte) (*host.Host, err
 }
 
 func (api *Client) Load(name string) (*host.Host, error) {
-	h, err := api.Filestore.Load(name)
+	h, err := api.Store.Load(name)
 	if err != nil {
 		return nil, err
 	}
@@ -185,4 +207,8 @@ func (api *Client) performCreate(h *host.Host) error {
 
 func (api *Client) Close() error {
 	return api.clientDriverFactory.Close()
+}
+
+func (api *Client) GetMachinesDir() string {
+	return api.Store.GetMachinesDir()
 }

@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -26,6 +25,7 @@ import (
 	"github.com/docker/machine/libmachine/log"
 	"github.com/docker/machine/libmachine/mcnerror"
 	"github.com/docker/machine/libmachine/mcnflag"
+	"github.com/docker/machine/libmachine/mcnutils"
 	"github.com/docker/machine/libmachine/swarm"
 )
 
@@ -172,9 +172,9 @@ func cmdCreateInner(c CommandLine, api libmachine.API) error {
 			CaPrivateKeyPath: tlsPath(c, "tls-ca-key", "ca-key.pem"),
 			ClientCertPath:   tlsPath(c, "tls-client-cert", "cert.pem"),
 			ClientKeyPath:    tlsPath(c, "tls-client-key", "key.pem"),
-			ServerCertPath:   filepath.Join(mcndirs.GetMachineDir(), name, "server.pem"),
-			ServerKeyPath:    filepath.Join(mcndirs.GetMachineDir(), name, "server-key.pem"),
-			StorePath:        filepath.Join(mcndirs.GetMachineDir(), name),
+			ServerCertPath:   mcnutils.Join(mcndirs.GetMachineDir(), name, "server.pem"),
+			ServerKeyPath:    mcnutils.Join(mcndirs.GetMachineDir(), name, "server-key.pem"),
+			StorePath:        mcnutils.Join(mcndirs.GetMachineDir(), name),
 			ServerCertSANs:   c.StringSlice("tls-san"),
 		},
 		EngineOptions: &engine.Options{
@@ -226,7 +226,7 @@ func cmdCreateInner(c CommandLine, api libmachine.API) error {
 
 		vBoxLog := ""
 		if h.DriverName == "virtualbox" {
-			vBoxLog = filepath.Join(api.GetMachinesDir(), h.Name, h.Name, "Logs", "VBox.log")
+			vBoxLog = mcnutils.Join(api.GetMachinesDir(), h.Name, h.Name, "Logs", "VBox.log")
 		}
 
 		return crashreport.CrashError{
@@ -454,5 +454,5 @@ func tlsPath(c CommandLine, flag string, defaultName string) string {
 		return path
 	}
 
-	return filepath.Join(mcndirs.GetMachineCertDir(), defaultName)
+	return mcnutils.Join(mcndirs.GetMachineCertDir(), defaultName)
 }

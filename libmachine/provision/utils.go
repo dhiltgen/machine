@@ -2,10 +2,8 @@ package provision
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"path"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -74,15 +72,15 @@ func ConfigureAuth(p Provisioner) error {
 
 	log.Info("Copying certs to the local machine directory...")
 
-	if err := mcnutils.CopyFile(authOptions.CaCertPath, filepath.Join(authOptions.StorePath, "ca.pem")); err != nil {
+	if err := mcnutils.CopyFile(authOptions.CaCertPath, mcnutils.Join(authOptions.StorePath, "ca.pem")); err != nil {
 		return fmt.Errorf("Copying ca.pem to machine dir failed: %s", err)
 	}
 
-	if err := mcnutils.CopyFile(authOptions.ClientCertPath, filepath.Join(authOptions.StorePath, "cert.pem")); err != nil {
+	if err := mcnutils.CopyFile(authOptions.ClientCertPath, mcnutils.Join(authOptions.StorePath, "cert.pem")); err != nil {
 		return fmt.Errorf("Copying cert.pem to machine dir failed: %s", err)
 	}
 
-	if err := mcnutils.CopyFile(authOptions.ClientKeyPath, filepath.Join(authOptions.StorePath, "key.pem")); err != nil {
+	if err := mcnutils.CopyFile(authOptions.ClientKeyPath, mcnutils.Join(authOptions.StorePath, "key.pem")); err != nil {
 		return fmt.Errorf("Copying key.pem to machine dir failed: %s", err)
 	}
 
@@ -121,16 +119,16 @@ func ConfigureAuth(p Provisioner) error {
 	}
 
 	// upload certs and configure TLS auth
-	caCert, err := ioutil.ReadFile(authOptions.CaCertPath)
+	caCert, err := mcnutils.ReadFile(authOptions.CaCertPath)
 	if err != nil {
 		return err
 	}
 
-	serverCert, err := ioutil.ReadFile(authOptions.ServerCertPath)
+	serverCert, err := mcnutils.ReadFile(authOptions.ServerCertPath)
 	if err != nil {
 		return err
 	}
-	serverKey, err := ioutil.ReadFile(authOptions.ServerKeyPath)
+	serverKey, err := mcnutils.ReadFile(authOptions.ServerKeyPath)
 	if err != nil {
 		return err
 	}

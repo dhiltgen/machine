@@ -1,6 +1,7 @@
 package mcndirs
 
 import (
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -19,9 +20,23 @@ func GetBaseDir() string {
 }
 
 func GetMachineDir() string {
-	return filepath.Join(GetBaseDir(), "machines")
+	// Might be a URL
+	base := GetBaseDir()
+	baseURL, err := url.Parse(base)
+	if err != nil {
+		return filepath.Join(base, "machines")
+	}
+	baseURL.Path = filepath.Join(baseURL.Path, "machines")
+	return baseURL.String()
 }
 
 func GetMachineCertDir() string {
-	return filepath.Join(GetBaseDir(), "certs")
+	// Might be a URL
+	base := GetBaseDir()
+	baseURL, err := url.Parse(base)
+	if err != nil {
+		return filepath.Join(base, "certs")
+	}
+	baseURL.Path = filepath.Join(baseURL.Path, "certs")
+	return baseURL.String()
 }

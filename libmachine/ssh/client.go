@@ -129,7 +129,7 @@ func NewNativeConfig(user string, auth *Auth) (ssh.ClientConfig, error) {
 	)
 
 	for _, k := range auth.Keys {
-		key, err := ioutil.ReadFile(k)
+		key, err := mcnutils.ReadFile(k)
 		if err != nil {
 			return ssh.ClientConfig{}, err
 		}

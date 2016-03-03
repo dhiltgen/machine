@@ -140,6 +140,10 @@ func cmdLs(c CommandLine, api libmachine.API) error {
 			if item.SwarmOptions.Master {
 				swarmColumn = fmt.Sprintf("%s (master)", swarmColumn)
 			}
+			// XXX Not sure this is right...
+			if swarmColumn == "" {
+				swarmColumn = item.SwarmOptions.Discovery
+			}
 		}
 		item.Swarm = swarmColumn
 

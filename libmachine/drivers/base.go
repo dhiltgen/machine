@@ -2,6 +2,7 @@ package drivers
 
 import (
 	"errors"
+	"net/url"
 	"path/filepath"
 )
 
@@ -75,7 +76,14 @@ func (d *BaseDriver) PreCreateCheck() error {
 
 // ResolveStorePath returns the store path where the machine is
 func (d *BaseDriver) ResolveStorePath(file string) string {
-	return filepath.Join(d.StorePath, "machines", d.MachineName, file)
+	// Store might be a URL
+	baseURL, err := url.Parse(d.StorePath)
+	if err != nil {
+		return filepath.Join(d.StorePath, "machines", d.MachineName, file)
+	}
+	baseURL.Path = filepath.Join(baseURL.Path, "machines", d.MachineName, file)
+	return baseURL.String()
+
 }
 
 // SetSwarmConfigFromFlags configures the driver for swarm
