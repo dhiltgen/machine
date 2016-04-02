@@ -101,7 +101,13 @@ func main() {
 
 	app.Commands = commands.Commands
 	app.CommandNotFound = cmdNotFound
-	app.Usage = "Create and manage machines running Docker."
+	app.Usage = `Create and manage machines running Docker.
+
+When using '--ca', specify '--tls-ca-cert' to verify the server cert,
+and '--tls-client-cert' plus '--tls-client-key' for mutual tls.
+The '--tls-ca-key' flag is not supported when using a remote CA.`
+	// XXX this ^^ probably isn't the right place to explain CA usage info, but I'm not sure where is...
+
 	app.Version = version.FullVersion()
 
 	log.Debug("Docker Machine Version: ", app.Version)
@@ -116,6 +122,17 @@ func main() {
 			Name:   "s, storage-path",
 			Value:  mcndirs.GetBaseDir(),
 			Usage:  "Configures storage path",
+		},
+		cli.StringFlag{
+			EnvVar: "MACHINE_CERT_PATH",
+			Name:   "cert-path",
+			Value:  mcndirs.GetMachineCertDir(),
+			Usage:  "Configures local cert path",
+		},
+		cli.StringFlag{
+			EnvVar: "MACHINE_CA",
+			Name:   "ca",
+			Usage:  "Optional remote CA for signing machine certs",
 		},
 		cli.StringFlag{
 			EnvVar: "MACHINE_TLS_CA_CERT",
