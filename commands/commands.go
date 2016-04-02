@@ -142,7 +142,7 @@ func runAction(actionName string, c CommandLine, api libmachine.API) error {
 
 func runCommand(command func(commandLine CommandLine, api libmachine.API) error) func(context *cli.Context) {
 	return func(context *cli.Context) {
-		api := libmachine.NewClient(mcndirs.GetBaseDir(), mcndirs.GetMachineCertDir())
+		api := libmachine.NewClient(mcndirs.GetBaseDir(), context.GlobalString("cert-path"))
 		defer api.Close()
 
 		if context.GlobalBool("native-ssh") {
@@ -150,6 +150,11 @@ func runCommand(command func(commandLine CommandLine, api libmachine.API) error)
 		}
 		api.GithubAPIToken = context.GlobalString("github-api-token")
 		api.Filestore.Path = context.GlobalString("storage-path")
+
+		ca := context.GlobalString("ca")
+		if ca != "" {
+			api.CA = ca
+		}
 
 		// TODO (nathanleclaire): These should ultimately be accessed
 		// through the libmachine client by the rest of the code and

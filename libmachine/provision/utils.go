@@ -96,14 +96,9 @@ func ConfigureAuth(p Provisioner) error {
 		hosts,
 	)
 
-	// TODO: Switch to passing just authOptions to this func
-	// instead of all these individual fields
-	err = cert.GenerateCert(
+	err = cert.GenerateServerCert(
 		hosts,
-		authOptions.ServerCertPath,
-		authOptions.ServerKeyPath,
-		authOptions.CaCertPath,
-		authOptions.CaPrivateKeyPath,
+		&authOptions,
 		org,
 		bits,
 	)

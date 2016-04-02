@@ -23,7 +23,8 @@ var defaultGenerator = NewX509CertGenerator()
 
 type Generator interface {
 	GenerateCACertificate(certFile, keyFile, org string, bits int) error
-	GenerateCert(hosts []string, certFile, keyFile, caFile, caKeyFile, org string, bits int) error
+	GenerateClientCert(hosts []string, authOptions *auth.Options, org string, bits int) error
+	GenerateServerCert(hosts []string, authOptions *auth.Options, org string, bits int) error
 	ReadTLSConfig(addr string, authOptions *auth.Options) (*tls.Config, error)
 	ValidateCertificate(addr string, authOptions *auth.Options) (bool, error)
 }
@@ -38,8 +39,22 @@ func GenerateCACertificate(certFile, keyFile, org string, bits int) error {
 	return defaultGenerator.GenerateCACertificate(certFile, keyFile, org, bits)
 }
 
-func GenerateCert(hosts []string, certFile, keyFile, caFile, caKeyFile, org string, bits int) error {
-	return defaultGenerator.GenerateCert(hosts, certFile, keyFile, caFile, caKeyFile, org, bits)
+func GenerateClientCert(hosts []string, authOptions *auth.Options, org string, bits int) error {
+	if authOptions.RemoteCa == "" {
+		return defaultGenerator.GenerateClientCert(hosts, authOptions, org, bits)
+	} else {
+		// TODO - support other CA types
+		return NewCFSSLCertGenerator(authOptions).GenerateClientCert(hosts, authOptions, org, bits)
+	}
+}
+
+func GenerateServerCert(hosts []string, authOptions *auth.Options, org string, bits int) error {
+	if authOptions.RemoteCa == "" {
+		return defaultGenerator.GenerateServerCert(hosts, authOptions, org, bits)
+	} else {
+		// TODO - support other CA types
+		return NewCFSSLCertGenerator(authOptions).GenerateServerCert(hosts, authOptions, org, bits)
+	}
 }
 
 func ValidateCertificate(addr string, authOptions *auth.Options) (bool, error) {
@@ -146,11 +161,19 @@ func (xcg *X509CertGenerator) GenerateCACertificate(certFile, keyFile, org strin
 	return nil
 }
 
-// GenerateCert generates a new certificate signed using the provided
+func (xcg *X509CertGenerator) GenerateServerCert(hosts []string, authOptions *auth.Options, org string, bits int) error {
+	return xcg.generateCert(hosts, authOptions.ServerCertPath, authOptions.ServerKeyPath, authOptions.CaCertPath, authOptions.CaPrivateKeyPath, org, bits)
+}
+
+func (xcg *X509CertGenerator) GenerateClientCert(hosts []string, authOptions *auth.Options, org string, bits int) error {
+	return xcg.generateCert(hosts, authOptions.ClientCertPath, authOptions.ClientKeyPath, authOptions.CaCertPath, authOptions.CaPrivateKeyPath, org, bits)
+}
+
+// generateCert generates a new certificate signed using the provided
 // certificate authority files and stores the result in the certificate
 // file and key provided.  The provided host names are set to the
 // appropriate certificate fields.
-func (xcg *X509CertGenerator) GenerateCert(hosts []string, certFile, keyFile, caFile, caKeyFile, org string, bits int) error {
+func (xcg *X509CertGenerator) generateCert(hosts []string, certFile, keyFile, caFile, caKeyFile, org string, bits int) error {
 	template, err := xcg.newCertificate(org)
 	if err != nil {
 		return err

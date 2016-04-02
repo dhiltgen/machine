@@ -56,7 +56,12 @@ func TestGenerateCert(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := GenerateCert([]string{}, certPath, keyPath, caCertPath, caKeyPath, testOrg, bits); err != nil {
+	if err := GenerateServerCert([]string{}, auth.Options{
+		ServerCertPath:   certPath,
+		ServerKeyPath:    keyPath,
+		CaCertPath:       caCertPath,
+		CaPrivateKeyPath: caKeyPath,
+	}, testOrg, bits); err != nil {
 		t.Fatal(err)
 	}
 

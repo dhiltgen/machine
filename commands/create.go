@@ -167,7 +167,7 @@ func cmdCreateInner(c CommandLine, api libmachine.API) error {
 
 	h.HostOptions = &host.Options{
 		AuthOptions: &auth.Options{
-			CertDir:          mcndirs.GetMachineCertDir(),
+			CertDir:          c.GlobalString("cert-path"),
 			CaCertPath:       tlsPath(c, "tls-ca-cert", "ca.pem"),
 			CaPrivateKeyPath: tlsPath(c, "tls-ca-key", "ca-key.pem"),
 			ClientCertPath:   tlsPath(c, "tls-client-cert", "cert.pem"),
@@ -454,5 +454,5 @@ func tlsPath(c CommandLine, flag string, defaultName string) string {
 		return path
 	}
 
-	return filepath.Join(mcndirs.GetMachineCertDir(), defaultName)
+	return filepath.Join(c.GlobalString("cert-path"), defaultName)
 }

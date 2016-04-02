@@ -1,6 +1,7 @@
 package auth
 
 type Options struct {
+	RemoteCa             string
 	CertDir              string
 	CaCertPath           string
 	CaPrivateKeyPath     string

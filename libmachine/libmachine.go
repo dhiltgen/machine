@@ -35,6 +35,7 @@ type API interface {
 }
 
 type Client struct {
+	CA             string
 	certsDir       string
 	IsDebug        bool
 	SSHClientType  ssh.ClientType
@@ -116,7 +117,19 @@ func (api *Client) Load(name string) (*host.Host, error) {
 // Create is the wrapper method which covers all of the boilerplate around
 // actually creating, provisioning, and persisting an instance in the store.
 func (api *Client) Create(h *host.Host) error {
-	if err := cert.BootstrapCertificates(h.AuthOptions()); err != nil {
+	if api.CA != "" {
+		if h.HostOptions != nil && h.HostOptions.AuthOptions != nil {
+			if h.HostOptions.AuthOptions.RemoteCa != api.CA {
+				log.Debug("XXX RemoteCa not wired, fixing")
+				h.HostOptions.AuthOptions.RemoteCa = api.CA
+			}
+		} else {
+			log.Debug("XXX HostOptions not setup")
+		}
+		if err := cert.BootstrapRemoteSignedCertificates(h.AuthOptions()); err != nil {
+			return fmt.Errorf("Error getting cert signed by remote CA: %s", err)
+		}
+	} else if err := cert.BootstrapCertificates(h.AuthOptions()); err != nil {
 		return fmt.Errorf("Error generating certificates: %s", err)
 	}
 
