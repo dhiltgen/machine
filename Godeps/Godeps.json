@@ -266,6 +266,10 @@
 			"Rev": "0bbddae09c5a5419a8c6dcdd7ff90da3d450393b"
 		},
 		{
+			"ImportPath": "github.com/docker/libkv",
+			"Rev": "8fc395a354d73bd69a373ddb052e0bae0fd15aa4"
+		},
+		{
 			"ImportPath": "github.com/go-ini/ini",
 			"Comment": "v0-56-g03e0e7d",
 			"Rev": "03e0e7d51a13a91c765d8d0161246bc14a38001a"
@@ -607,6 +611,25 @@
 			"ImportPath": "google.golang.org/cloud/compute/metadata",
 			"Rev": "975617b05ea8a58727e6c1a06b6161ff4185a9f2"
 		},
+		{
+			"ImportPath": "github.com/docker/libkv",
+			"Rev": "8fc395a354d73bd69a373ddb052e0bae0fd15aa4"
+		},
+                {
+                        "ImportPath": "github.com/coreos/etcd/client",
+                        "Comment": "v2.2.0-alpha.1-132-g25c87f1",
+                        "Rev": "25c87f13fdc678c1f02a34ae8ca0171ff25e764f"
+                },
+                {
+                        "ImportPath": "github.com/coreos/etcd/pkg/pathutil",
+                        "Comment": "v2.2.0-alpha.1-132-g25c87f1",
+                        "Rev": "25c87f13fdc678c1f02a34ae8ca0171ff25e764f"
+                },
+                {
+                        "ImportPath": "github.com/coreos/etcd/pkg/types",
+                        "Comment": "v2.2.0-alpha.1-132-g25c87f1",
+                        "Rev": "25c87f13fdc678c1f02a34ae8ca0171ff25e764f"
+                },
 		{
 			"ImportPath": "google.golang.org/cloud/internal",
 			"Rev": "975617b05ea8a58727e6c1a06b6161ff4185a9f2"
