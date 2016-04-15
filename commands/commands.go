@@ -142,14 +142,14 @@ func runAction(actionName string, c CommandLine, api libmachine.API) error {
 
 func runCommand(command func(commandLine CommandLine, api libmachine.API) error) func(context *cli.Context) {
 	return func(context *cli.Context) {
-		api := libmachine.NewClient(mcndirs.GetBaseDir(), context.GlobalString("cert-path"))
+		api := libmachine.NewClient(context.GlobalString("storage-path"), context.GlobalString("cert-path"))
 		defer api.Close()
 
 		if context.GlobalBool("native-ssh") {
 			api.SSHClientType = ssh.Native
 		}
 		api.GithubAPIToken = context.GlobalString("github-api-token")
-		api.Filestore.Path = context.GlobalString("storage-path")
+		//api.Store.Path = context.GlobalString("storage-path")
 
 		ca := context.GlobalString("ca")
 		if ca != "" {
@@ -161,7 +161,8 @@ func runCommand(command func(commandLine CommandLine, api libmachine.API) error)
 		// not through their respective modules.  For now, however,
 		// they are also being set the way that they originally were
 		// set to preserve backwards compatibility.
-		mcndirs.BaseDir = api.Filestore.Path
+		//mcndirs.BaseDir = api.Store.Path
+		mcndirs.BaseDir = context.GlobalString("storage-path")
 		mcnutils.GithubAPIToken = api.GithubAPIToken
 		ssh.SetDefaultClient(api.SSHClientType)
 
