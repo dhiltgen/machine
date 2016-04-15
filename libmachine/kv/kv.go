@@ -5,6 +5,9 @@ package kv
 // put this here to avoid import loops in other code areas
 
 import (
+	"fmt"
+	"os"
+	"path"
 	"time"
 
 	"github.com/docker/libkv"
@@ -17,22 +20,34 @@ const MachineKvPrefix = "machine/v0"
 
 var kvStore store.Store
 
-func Connect(BaseDir string) (err error) {
+func Connect(kvHost string) (err error) {
+	log.Infof("AK: connect %d: %s", os.Getpid(), kvHost)
 	// TODO - figure out how to get TLS support in here...
+	if kvStore != nil {
+		log.Infof("AK: redundant connect, ignoring")
+		return nil
+	}
 	etcd.Register()
 	kvStore, err = libkv.NewStore(store.ETCD,
-		[]string{BaseDir},
+		[]string{kvHost},
 		&store.Config{
 			ConnectionTimeout: 10 * time.Second,
 		},
 	)
 
+	if err != nil {
+		log.Warnf("AK: err in connect, this is BAD: %s", err)
+	}
+
 	return err
 }
 
 func KvList(dir string) (kvList []*store.KVPair, err error) {
-	log.Debugf("Looking for kv data at %s", dir)
-	kvList, err = kvStore.List(dir)
+	log.Infof("AK: list %d", os.Getpid())
+	if kvStore == nil {
+		panic(fmt.Errorf("KVStore not initialized!!"))
+	}
+	kvList, err = kvStore.List(addPrefix(dir))
 	if err == store.ErrKeyNotFound {
 		return kvList, nil
 	}
@@ -41,7 +56,38 @@ func KvList(dir string) (kvList []*store.KVPair, err error) {
 	return kvList, err
 }
 
+func KvPut(path string, data []byte) (err error) {
+	log.Infof("AK: put %d", os.Getpid())
+	if kvStore == nil {
+		panic(fmt.Errorf("KVStore not initialized!!"))
+	}
+
+	err = kvStore.Put(addPrefix(path), data, nil)
+	return err
+}
+
+func addPrefix(key string) string {
+	return path.Join(MachineKvPrefix, key)
+}
+
 func KvLoad(key string) (kvPair *store.KVPair, err error) {
-	kvPair, err = kvStore.Get(key)
+	log.Infof("AK: load %d", os.Getpid())
+	if kvStore == nil {
+		panic(fmt.Errorf("KVStore not initialized!!"))
+	}
+	kvPair, err = kvStore.Get(addPrefix(key))
 	return kvPair, err
+}
+
+func KvExists(key string) (exists bool, err error) {
+	log.Infof("AK: exists %d", os.Getpid())
+	if kvStore == nil {
+		panic(fmt.Errorf("KVStore not initialized!!"))
+	}
+	log.Debugf("AK: exists? %s", key)
+	exists, err = kvStore.Exists(addPrefix(key))
+	if err != nil {
+		log.Warnf("ERR: %s", err)
+	}
+	return exists, err
 }

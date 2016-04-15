@@ -1,6 +1,7 @@
 package persist
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"path"
@@ -22,8 +23,8 @@ type Kvstore struct {
 	Path string // compat
 }
 
-func NewKvstore(path string, certsDir string) *Kvstore {
-	log.Debugf("XXX NewKvstore(%s, %s)", path, certsDir)
+func NewKvstore(path string) *Kvstore {
+	log.Infof("XXX NewKvstore(%s)", path)
 	kvurl, err := url.Parse(path)
 	if err != nil {
 		panic(fmt.Sprintf("Malformed store path: %s %s", path, err))
@@ -43,11 +44,18 @@ func NewKvstore(path string, certsDir string) *Kvstore {
 }
 
 func (s Kvstore) Save(host *host.Host) error {
-	return fmt.Errorf("NYI: Save")
+	data, err := json.Marshal(host)
+	if err != nil {
+		return err
+	}
+
+	hostPath := path.Join(getMachineBase(host.Name), "config.json")
+	return kv.KvPut(hostPath, data)
 }
 
 func (s Kvstore) Exists(name string) (bool, error) {
-	return false, fmt.Errorf("NYI: Exists")
+	machinePath := path.Join(getMachineBase(name), "config.json")
+	return kv.KvExists(machinePath)
 }
 
 func (s Kvstore) loadConfig(h *host.Host, data []byte) error {
@@ -81,9 +89,13 @@ func (s Kvstore) loadConfig(h *host.Host, data []byte) error {
 	return nil
 }
 
+func getMachineBase(name string) string {
+	return path.Join("machines", name)
+}
+
 func (s Kvstore) Load(name string) (loadedHost *host.Host, err error) {
 	log.Debugf("XXX Load input name is -> %s", name)
-	machinePath := path.Join(kv.MachineKvPrefix, "machines", name, "config.json")
+	machinePath := path.Join(getMachineBase(name), "config.json")
 	kvPair, err := kv.KvLoad(machinePath)
 	if err != nil {
 		return nil, err
@@ -101,10 +113,7 @@ func (s Kvstore) Load(name string) (loadedHost *host.Host, err error) {
 }
 
 func (s Kvstore) List() (results []string, err error) {
-	machinePath := path.Join(kv.MachineKvPrefix, "machines")
-	log.Infof("AK: machine path %s", machinePath)
-
-	kvList, err := kv.KvList(machinePath)
+	kvList, err := kv.KvList("machines")
 	if err != nil {
 		return results, err
 	}

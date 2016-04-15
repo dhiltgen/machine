@@ -3,7 +3,7 @@ package libmachine
 import (
 	"fmt"
 	"io"
-	"net/url"
+	"os"
 	"path/filepath"
 
 	"github.com/docker/machine/drivers/errdriver"
@@ -39,30 +39,21 @@ type Client struct {
 	IsDebug        bool
 	SSHClientType  ssh.ClientType
 	GithubAPIToken string
+	StorePath      string
 	//*persist.Filestore
 	persist.Store
 	clientDriverFactory rpcdriver.RPCClientDriverFactory
 }
 
-func NewClient(storePath, certsDir string) *Client {
+func NewClient(storePath, certsDir string, kvUrl string) *Client {
 	// Determine which type of store to generate
 	log.Debugf("In NewClient(%s, %s)", storePath, certsDir)
 	var store persist.Store
-	storeURL, err := url.Parse(storePath)
-	if err == nil {
-		log.Debugf("Parsed URL Scheme: %s", storeURL.Scheme)
-		log.Debugf("Parsed URL Host: %s", storeURL.Host)
-		log.Debugf("Parsed URL Path: %s", storeURL.Path)
-		// The scheme will be blank on unix paths, might be a drive letter (single char)
-		// or a multi-character scheme that libkv will hopefully handle
-		if len(storeURL.Scheme) > 1 {
-			log.Debugf("Generated new KV store")
-			store = persist.NewKvstore(storePath, certsDir)
-		}
+	if kvUrl != "" {
+		log.Debugf("Generated new KV store: %s", kvUrl)
+		store = persist.NewKvstore(kvUrl)
+		// XXX: not sure about this...
 	} else {
-		log.Debugf("Failed to parse: %s", err)
-	}
-	if store == nil {
 		log.Debugf("Generated new file store")
 		store = persist.NewFilestore(storePath, certsDir, certsDir)
 	}
@@ -73,6 +64,7 @@ func NewClient(storePath, certsDir string) *Client {
 		SSHClientType: ssh.External,
 		//Filestore:           persist.NewFilestore(storePath, certsDir, certsDir),
 		Store:               store,
+		StorePath:           storePath,
 		clientDriverFactory: rpcdriver.NewRPCClientDriverFactory(),
 	}
 }
@@ -166,6 +158,14 @@ func (api *Client) Create(h *host.Host) error {
 
 	if err := api.Save(h); err != nil {
 		return fmt.Errorf("Error saving host to store before attempting creation: %s", err)
+	}
+
+	// TODO(AK) find a better place for this
+	// or maybe prohibit KV without remote only drivers
+	mcnPath := filepath.Join(api.StorePath, "machines", h.Name)
+	if err := os.MkdirAll(mcnPath, 0700); err != nil {
+		return fmt.Errorf("mkdir failed %s: %s", mcnPath, err)
+
 	}
 
 	log.Info("Creating machine...")

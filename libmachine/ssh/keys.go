@@ -13,6 +13,7 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/docker/machine/libmachine/log"
 	gossh "golang.org/x/crypto/ssh"
 )
 
@@ -115,6 +116,7 @@ func GenerateSSHKey(path string) error {
 			return fmt.Errorf("Error generating key pair: %s", err)
 		}
 
+		log.Debugf("AK: writing to %s, %s.pub", path, path)
 		if err := kp.WriteToFile(path, fmt.Sprintf("%s.pub", path)); err != nil {
 			return fmt.Errorf("Error writing keys to file(s): %s", err)
 		}
