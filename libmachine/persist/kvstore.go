@@ -127,7 +127,9 @@ func (s Kvstore) List() (results []string, err error) {
 }
 
 func (s Kvstore) Remove(name string) error {
-	return fmt.Errorf("NYI: Remove")
+	machinePath := getMachineBase(name)
+	log.Debugf("AK: deleting %s", machinePath)
+	return kv.KvDeleteTree(machinePath)
 }
 
 func (s Kvstore) GetMachinesDir() string {

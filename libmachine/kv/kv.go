@@ -91,3 +91,11 @@ func KvExists(key string) (exists bool, err error) {
 	}
 	return exists, err
 }
+
+func KvDeleteTree(key string) error {
+	log.Debugf("AK: exists %d", os.Getpid())
+	if kvStore == nil {
+		panic(fmt.Errorf("KVStore not initialized!!"))
+	}
+	return kvStore.DeleteTree(addPrefix(key))
+}
