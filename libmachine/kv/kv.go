@@ -21,10 +21,10 @@ const MachineKvPrefix = "machine/v0"
 var kvStore store.Store
 
 func Connect(kvHost string) (err error) {
-	log.Infof("AK: connect %d: %s", os.Getpid(), kvHost)
+	log.Debugf("AK: connect %d: %s", os.Getpid(), kvHost)
 	// TODO - figure out how to get TLS support in here...
 	if kvStore != nil {
-		log.Infof("AK: redundant connect, ignoring")
+		log.Debugf("AK: redundant connect, ignoring")
 		return nil
 	}
 	etcd.Register()
@@ -43,7 +43,7 @@ func Connect(kvHost string) (err error) {
 }
 
 func KvList(dir string) (kvList []*store.KVPair, err error) {
-	log.Infof("AK: list %d", os.Getpid())
+	log.Debugf("AK: list %d", os.Getpid())
 	if kvStore == nil {
 		panic(fmt.Errorf("KVStore not initialized!!"))
 	}
@@ -57,7 +57,7 @@ func KvList(dir string) (kvList []*store.KVPair, err error) {
 }
 
 func KvPut(path string, data []byte) (err error) {
-	log.Infof("AK: put %d", os.Getpid())
+	log.Debugf("AK: put %d", os.Getpid())
 	if kvStore == nil {
 		panic(fmt.Errorf("KVStore not initialized!!"))
 	}
@@ -71,7 +71,7 @@ func addPrefix(key string) string {
 }
 
 func KvLoad(key string) (kvPair *store.KVPair, err error) {
-	log.Infof("AK: load %d", os.Getpid())
+	log.Debugf("AK: load %d", os.Getpid())
 	if kvStore == nil {
 		panic(fmt.Errorf("KVStore not initialized!!"))
 	}
@@ -80,7 +80,7 @@ func KvLoad(key string) (kvPair *store.KVPair, err error) {
 }
 
 func KvExists(key string) (exists bool, err error) {
-	log.Infof("AK: exists %d", os.Getpid())
+	log.Debugf("AK: exists %d", os.Getpid())
 	if kvStore == nil {
 		panic(fmt.Errorf("KVStore not initialized!!"))
 	}

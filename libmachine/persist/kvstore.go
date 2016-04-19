@@ -24,7 +24,7 @@ type Kvstore struct {
 }
 
 func NewKvstore(path string) *Kvstore {
-	log.Infof("XXX NewKvstore(%s)", path)
+	log.Debugf("AK: NewKvstore(%s)", path)
 	kvurl, err := url.Parse(path)
 	if err != nil {
 		panic(fmt.Sprintf("Malformed store path: %s %s", path, err))
