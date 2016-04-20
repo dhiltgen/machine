@@ -142,7 +142,12 @@ func runAction(actionName string, c CommandLine, api libmachine.API) error {
 
 func runCommand(command func(commandLine CommandLine, api libmachine.API) error) func(context *cli.Context) {
 	return func(context *cli.Context) {
-		api := libmachine.NewClient(context.GlobalString("storage-path"), context.GlobalString("cert-path"), context.GlobalString("kv-url"))
+		api, err := libmachine.NewClient(context.GlobalString("storage-path"), context.GlobalString("cert-path"), context.GlobalString("kv-url"))
+		if err != nil {
+			log.Error(err)
+			osExit(1)
+			return
+		}
 		defer api.Close()
 
 		if context.GlobalBool("native-ssh") {

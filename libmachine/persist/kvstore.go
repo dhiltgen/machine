@@ -3,7 +3,6 @@ package persist
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"path"
 
 	"github.com/docker/machine/libmachine/host"
@@ -11,36 +10,18 @@ import (
 	"github.com/docker/machine/libmachine/log"
 )
 
-func init() {
-	// XXX do we need this?
-	//etcd.Register()
-	//consul.Register()
-	//zookeeper.Register()
-	//boltdb.Register()
-}
-
 type Kvstore struct {
 	Path string // compat
 }
 
-func NewKvstore(path string) *Kvstore {
+func NewKvstore(path string) (*Kvstore, error) {
 	log.Debugf("AK: NewKvstore(%s)", path)
-	kvurl, err := url.Parse(path)
+	err := kv.Connect(path)
 	if err != nil {
-		panic(fmt.Sprintf("Malformed store path: %s %s", path, err))
-	}
-	switch kvurl.Scheme {
-	case "etcd":
-		err := kv.Connect(kvurl.Host)
-		if err != nil {
-			panic(err)
-		}
-		// TODO other KV store types
-	default:
-		panic(fmt.Sprintf("Unsupporetd KV store type: %s", kvurl.Scheme))
+		return nil, err
 	}
 
-	return &Kvstore{}
+	return &Kvstore{}, nil
 }
 
 func (s Kvstore) Save(host *host.Host) error {

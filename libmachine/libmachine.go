@@ -45,14 +45,17 @@ type Client struct {
 	clientDriverFactory rpcdriver.RPCClientDriverFactory
 }
 
-func NewClient(storePath, certsDir string, kvUrl string) *Client {
+func NewClient(storePath, certsDir string, kvUrl string) (*Client, error) {
 	// Determine which type of store to generate
 	log.Debugf("In NewClient(%s, %s)", storePath, certsDir)
 	var store persist.Store
+	var err error
 	if kvUrl != "" {
 		log.Debugf("Generated new KV store: %s", kvUrl)
-		store = persist.NewKvstore(kvUrl)
-		// XXX: not sure about this...
+		store, err = persist.NewKvstore(kvUrl)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		log.Debugf("Generated new file store")
 		store = persist.NewFilestore(storePath, certsDir, certsDir)
@@ -66,7 +69,7 @@ func NewClient(storePath, certsDir string, kvUrl string) *Client {
 		Store:               store,
 		StorePath:           storePath,
 		clientDriverFactory: rpcdriver.NewRPCClientDriverFactory(),
-	}
+	}, nil
 }
 
 func (api *Client) NewHost(driverName string, rawDriver []byte) (*host.Host, error) {
