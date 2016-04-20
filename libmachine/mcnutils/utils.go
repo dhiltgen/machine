@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"strconv"
 	"time"
+
+	"github.com/docker/machine/libmachine/log"
 )
 
 // GetHomeDir returns the home directory
@@ -40,6 +42,7 @@ func GetUsername() string {
 }
 
 func CopyFile(src, dst string) error {
+	log.Debugf("XXX: copyfile %s -> %s", src, dst)
 	in, err := os.Open(src)
 	if err != nil {
 		return err

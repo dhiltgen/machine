@@ -19,6 +19,8 @@ type Store interface {
 
 	// Save persists a machine in the store
 	Save(host *host.Host) error
+
+	GetMachinesDir() string
 }
 
 func LoadHosts(s Store, hostNames []string) ([]*host.Host, map[string]error) {

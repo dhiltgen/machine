@@ -2,9 +2,9 @@ package libmachine
 
 import (
 	"fmt"
-	"path/filepath"
-
 	"io"
+	"os"
+	"path/filepath"
 
 	"github.com/docker/machine/drivers/errdriver"
 	"github.com/docker/machine/libmachine/auth"
@@ -31,7 +31,6 @@ type API interface {
 	NewHost(driverName string, rawDriver []byte) (*host.Host, error)
 	Create(h *host.Host) error
 	persist.Store
-	GetMachinesDir() string
 }
 
 type Client struct {
@@ -40,16 +39,32 @@ type Client struct {
 	IsDebug        bool
 	SSHClientType  ssh.ClientType
 	GithubAPIToken string
-	*persist.Filestore
+	StorePath      string
+	//*persist.Filestore
+	persist.Store
 	clientDriverFactory rpcdriver.RPCClientDriverFactory
 }
 
-func NewClient(storePath, certsDir string) *Client {
+func NewClient(storePath, certsDir string, kvUrl string) *Client {
+	// Determine which type of store to generate
+	log.Debugf("In NewClient(%s, %s)", storePath, certsDir)
+	var store persist.Store
+	if kvUrl != "" {
+		log.Debugf("Generated new KV store: %s", kvUrl)
+		store = persist.NewKvstore(kvUrl)
+		// XXX: not sure about this...
+	} else {
+		log.Debugf("Generated new file store")
+		store = persist.NewFilestore(storePath, certsDir, certsDir)
+	}
+
 	return &Client{
-		certsDir:            certsDir,
-		IsDebug:             false,
-		SSHClientType:       ssh.External,
-		Filestore:           persist.NewFilestore(storePath, certsDir, certsDir),
+		certsDir:      certsDir,
+		IsDebug:       false,
+		SSHClientType: ssh.External,
+		//Filestore:           persist.NewFilestore(storePath, certsDir, certsDir),
+		Store:               store,
+		StorePath:           storePath,
 		clientDriverFactory: rpcdriver.NewRPCClientDriverFactory(),
 	}
 }
@@ -90,7 +105,7 @@ func (api *Client) NewHost(driverName string, rawDriver []byte) (*host.Host, err
 }
 
 func (api *Client) Load(name string) (*host.Host, error) {
-	h, err := api.Filestore.Load(name)
+	h, err := api.Store.Load(name)
 	if err != nil {
 		return nil, err
 	}
@@ -143,6 +158,14 @@ func (api *Client) Create(h *host.Host) error {
 
 	if err := api.Save(h); err != nil {
 		return fmt.Errorf("Error saving host to store before attempting creation: %s", err)
+	}
+
+	// TODO(AK) find a better place for this
+	// or maybe prohibit KV without remote only drivers
+	mcnPath := filepath.Join(api.StorePath, "machines", h.Name)
+	if err := os.MkdirAll(mcnPath, 0700); err != nil {
+		return fmt.Errorf("mkdir failed %s: %s", mcnPath, err)
+
 	}
 
 	log.Info("Creating machine...")
@@ -198,4 +221,8 @@ func (api *Client) performCreate(h *host.Host) error {
 
 func (api *Client) Close() error {
 	return api.clientDriverFactory.Close()
+}
+
+func (api *Client) GetMachinesDir() string {
+	return api.Store.GetMachinesDir()
 }

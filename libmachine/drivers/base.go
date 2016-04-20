@@ -3,6 +3,8 @@ package drivers
 import (
 	"errors"
 	"path/filepath"
+
+	"github.com/docker/machine/libmachine/log"
 )
 
 const (
@@ -75,6 +77,8 @@ func (d *BaseDriver) PreCreateCheck() error {
 
 // ResolveStorePath returns the store path where the machine is
 func (d *BaseDriver) ResolveStorePath(file string) string {
+	// XXX this is wrong but I don't remember what it should do
+	log.Debugf("AK: resolvestorepath: %s", d.StorePath)
 	return filepath.Join(d.StorePath, "machines", d.MachineName, file)
 }
 

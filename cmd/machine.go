@@ -124,6 +124,12 @@ The '--tls-ca-key' flag is not supported when using a remote CA.`
 			Usage:  "Configures storage path",
 		},
 		cli.StringFlag{
+			EnvVar: "MACHINE_KV_URL",
+			Name:   "kv-url",
+			Value:  "",
+			Usage:  "Configures KV store URL (optional)",
+		},
+		cli.StringFlag{
 			EnvVar: "MACHINE_CERT_PATH",
 			Name:   "cert-path",
 			Value:  mcndirs.GetMachineCertDir(),
